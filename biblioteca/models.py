@@ -1,37 +1,29 @@
 from django.db import models
-from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 
-# Validadores personalizados
-def validar_nombre(valor):
-    if not valor.strip():
-        raise ValidationError("El nombre no puede estar vacío o solo contener espacios.")
-
-def validar_resumen(resumen):
-    if len(resumen.strip()) < 30:
-        raise ValidationError("El resumen debe tener al menos 30 caracteres.")
-
-def validar_calificacion(valor):
-    if valor < 1 or valor > 5:
-        raise ValidationError("La calificación debe estar entre 1 y 5.")
-
-class Autor(models.Model):
-    nombre = models.CharField(max_length=100, validators=[validar_nombre])
+class Author(models.Model):
+    name = models.CharField(max_length=100)
+    nationality = models.CharField(max_length=100, blank=False, null=False)
 
     def __str__(self):
-        return self.nombre
+        return self.name
 
-class Libro(models.Model):
-    titulo = models.CharField(max_length=200)
-    autor = models.ForeignKey(Autor, on_delete=models.CASCADE, related_name="libros")
-    resumen = models.TextField(validators=[validar_resumen])
-
-    def __str__(self):
-        return self.titulo
-
-class Resena(models.Model):
-    libro = models.ForeignKey(Libro, on_delete=models.CASCADE, related_name="resenas")
-    texto = models.TextField()
-    calificacion = models.IntegerField(validators=[validar_calificacion])
+class Book(models.Model):
+    title = models.CharField(max_length=200)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='books')
+    year = models.PositiveIntegerField()
+    publication_date = models.DateField()
 
     def __str__(self):
-        return f"{self.libro.titulo} - {self.calificacion} estrellas"
+        return self.title
+
+class Review(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='reviews')
+    rating = models.FloatField(
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review {self.rating} for {self.book.title}"
